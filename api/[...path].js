@@ -13,9 +13,17 @@ function isMongoAuthError(err) {
   return message.includes("authentication failed") || message.includes("bad auth") || message.includes("auth failed");
 }
 
+function isMongoTopologyClosedError(err) {
+  const message = String(err && err.message ? err.message : "").toLowerCase();
+  return message.includes("topology is closed") || message.includes("pool is closed") || message.includes("connection closed");
+}
+
 function dbErrorMessage(err, fallback) {
   if (isMongoAuthError(err)) {
     return "Database authentication failed. Check MONGODB_URI username/password and URL encoding.";
+  }
+  if (isMongoTopologyClosedError(err)) {
+    return "Database connection was reset. Please retry your request.";
   }
   return fallback;
 }
@@ -25,7 +33,6 @@ function hashPassword(password) {
 }
 
 async function getUsersCollection() {
-  if (usersCollection) return usersCollection;
   if (!mongoUri) {
     throw new Error("MONGODB_URI is not configured.");
   }
@@ -33,8 +40,28 @@ async function getUsersCollection() {
     throw new Error("MONGODB_URI still contains placeholders.");
   }
 
+  if (usersCollection && mongoClient) {
+    try {
+      await mongoClient.db(mongoDbName).command({ ping: 1 });
+      return usersCollection;
+    } catch (err) {
+      if (!isMongoTopologyClosedError(err)) {
+        throw err;
+      }
+      usersCollection = null;
+      try {
+        await mongoClient.close();
+      } catch {}
+      mongoClient = null;
+    }
+  }
+
   if (!mongoClient) {
-    mongoClient = new MongoClient(mongoUri);
+    mongoClient = new MongoClient(mongoUri, {
+      serverSelectionTimeoutMS: 10000,
+      connectTimeoutMS: 10000,
+      maxPoolSize: 10
+    });
     await mongoClient.connect();
   }
 
@@ -177,6 +204,10 @@ module.exports = async (req, res) => {
       sendJson(res, 200, { ok: true, hasUsers: totalUsers > 0, totalUsers });
       return;
     } catch (err) {
+      if (isMongoTopologyClosedError(err)) {
+        usersCollection = null;
+        mongoClient = null;
+      }
       sendJson(res, 500, { ok: false, message: dbErrorMessage(err, "Bootstrap check failed.") });
       return;
     }
@@ -218,6 +249,10 @@ module.exports = async (req, res) => {
       });
       return;
     } catch (err) {
+      if (isMongoTopologyClosedError(err)) {
+        usersCollection = null;
+        mongoClient = null;
+      }
       const statusCode = isMongoAuthError(err) ? 500 : 400;
       sendJson(res, statusCode, { ok: false, message: dbErrorMessage(err, err.message || "Registration failed.") });
       return;
@@ -247,6 +282,10 @@ module.exports = async (req, res) => {
       });
       return;
     } catch (err) {
+      if (isMongoTopologyClosedError(err)) {
+        usersCollection = null;
+        mongoClient = null;
+      }
       const statusCode = isMongoAuthError(err) ? 500 : 400;
       sendJson(res, statusCode, { ok: false, message: dbErrorMessage(err, err.message || "Login failed.") });
       return;
