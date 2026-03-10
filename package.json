@@ -1,0 +1,17 @@
+{
+  "name": "plain-web-node-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Simple HTML, CSS, JS app served by Node.js",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": "20.x"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "better-sqlite3": "^12.6.2"
+  }
+}

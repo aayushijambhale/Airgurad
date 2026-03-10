@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Alerts - AirGuard</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <div id="appView" class="app-shell">
+      <header class="topbar">
+        <div class="topbar-left">
+          <div class="brand-icon" aria-hidden="true">AG</div>
+          <div>
+            <h1>AirGuard India</h1>
+            <p id="screenSubtitle">Alert Management</p>
+          </div>
+        </div>
+      </header>
+
+      <main class="content">
+        <section class="screen active" data-screen="alerts">
+          <section class="panel">
+            <div class="section-head">
+              <h3>Alert Controls</h3>
+              <p>Configure automated notifications</p>
+            </div>
+            <div class="control-row">
+              <div>
+                <strong>Push Alerts</strong>
+                <p class="soft">Receive notifications when AQI exceeds threshold.</p>
+              </div>
+              <button id="alertToggle" class="toggle" type="button" aria-pressed="true">
+                <span></span>
+              </button>
+            </div>
+            <div class="threshold-row">
+              <label for="thresholdRange">Alert Threshold: <strong id="thresholdValue">160</strong></label>
+              <input id="thresholdRange" type="range" min="50" max="300" value="160" />
+            </div>
+          </section>
+
+          <section class="panel stack-gap">
+            <div class="section-head">
+              <h3>Alert Timeline</h3>
+              <p>Recent escalations and acknowledgements</p>
+            </div>
+            <div id="alertsList" class="alert-list"></div>
+          </section>
+
+          <section class="panel stack-gap">
+            <div class="section-head">
+              <h3>Live Alert Center</h3>
+              <p>Popup status and recent high-priority incidents</p>
+            </div>
+            <div class="utility-grid">
+              <button id="enableAlertsPopupBtn" class="utility-btn" type="button">Enable Browser Popups</button>
+              <button id="simulateAlertBtn" class="utility-btn warning" type="button">Trigger Test Alert</button>
+            </div>
+            <p id="liveAlertStatus" class="soft soft-gap-sm">Popup permission not checked.</p>
+            <div id="activeIncidentFeed" class="alert-list"></div>
+          </section>
+        </section>
+      </main>
+
+      <nav class="bottom-nav" aria-label="Primary">
+        <button class="nav-btn" data-nav="home" onclick="location.href='/dashboard.html'">Home</button>
+        <button class="nav-btn" data-nav="search" onclick="location.href='/search.html'">Search</button>
+        <button class="nav-btn" data-nav="map" onclick="location.href='/map.html'">Map</button>
+        <button class="nav-btn" data-nav="realtime" onclick="location.href='/realtime.html'">Realtime</button>
+        <button class="nav-btn active" data-nav="alerts" onclick="location.href='/alerts.html'">Alerts</button>
+        <button class="nav-btn" data-nav="login" onclick="location.href='/settings.html'">Settings</button>
+      </nav>
+    </div>
+
+    <script src="/script.js"></script>
+    <script>
+       const token = localStorage.getItem("airguard_token_v1");
+       if (!token) window.location.href = "/register.html";
+       document.addEventListener("DOMContentLoaded", () => {
+         appState.currentScreen = "alerts";
+         
+         const alertToggle = document.getElementById("alertToggle");
+         const thresholdRange = document.getElementById("thresholdRange");
+         const thresholdValue = document.getElementById("thresholdValue");
+         
+         if (alertToggle) alertToggle.addEventListener("click", () => {
+             appState.alertsEnabled = !appState.alertsEnabled;
+             alertToggle.classList.toggle("off", !appState.alertsEnabled);
+             alertToggle.setAttribute("aria-pressed", String(appState.alertsEnabled));
+         });
+
+         if (thresholdRange) thresholdRange.addEventListener("input", () => {
+             appState.threshold = Number(thresholdRange.value);
+             thresholdValue.textContent = String(appState.threshold);
+         });
+
+         const popupBtn = document.getElementById("enableAlertsPopupBtn");
+         const status = document.getElementById("liveAlertStatus");
+         if (popupBtn) {
+           popupBtn.addEventListener("click", async () => {
+             const granted = await requestAlertNotificationPermission();
+             status.textContent = granted
+               ? "Browser popup notifications enabled."
+               : "Browser popup permission denied or unavailable.";
+           });
+         }
+         
+         renderAlerts();
+         renderLiveAlertCenter();
+       });
+    </script>
+  </body>
+</html>

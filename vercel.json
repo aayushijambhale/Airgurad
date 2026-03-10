@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "rewrites": [
+    { "source": "/", "destination": "/dashboard.html" },
+    { "source": "/dashboard", "destination": "/dashboard.html" },
+    { "source": "/login", "destination": "/login.html" },
+    { "source": "/register", "destination": "/register.html" },
+    { "source": "/alerts", "destination": "/alerts.html" },
+    { "source": "/map", "destination": "/map.html" },
+    { "source": "/realtime", "destination": "/realtime.html" },
+    { "source": "/search", "destination": "/search.html" },
+    { "source": "/settings", "destination": "/settings.html" }
+  ]
+}

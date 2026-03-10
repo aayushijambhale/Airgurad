@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Register - AirGuard India</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <section id="authView" class="auth-shell">
+      <div class="auth-panel">
+        <div class="auth-brand">
+          <div class="brand-mark">AG</div>
+          <div>
+            <h1>AirGuard India</h1>
+            <p>National Air Quality Operations Console</p>
+          </div>
+        </div>
+
+        <h2>Create account</h2>
+        <p class="soft">Register a new operator account stored in AirGuard SQLite database.</p>
+
+        <form id="authRegisterForm" class="auth-form">
+          <label for="regName">Full Name</label>
+          <input id="regName" type="text" placeholder="Your full name" required />
+
+          <label for="regEmail">Email</label>
+          <input id="regEmail" type="email" placeholder="you@airguard.in" required />
+
+          <label for="regPassword">Password</label>
+          <input id="regPassword" type="password" minlength="6" placeholder="Minimum 6 characters" required />
+
+          <button id="registerPageBtn" type="submit">Create Account</button>
+          <p id="registerError" class="error-text hidden"></p>
+        </form>
+
+        <p class="soft" style="margin-top: 16px;">
+          Already have an account? <a href="/login.html">Sign in</a>
+        </p>
+      </div>
+    </section>
+
+    <script src="/script.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const token = localStorage.getItem("airguard_token_v1");
+        if (token) {
+          window.location.href = "/settings.html";
+          return;
+        }
+
+        const form = document.getElementById("authRegisterForm");
+        const errorBox = document.getElementById("registerError");
+        const button = document.getElementById("registerPageBtn");
+
+        form.addEventListener("submit", async (event) => {
+          event.preventDefault();
+
+          const name = document.getElementById("regName").value.trim();
+          const email = document.getElementById("regEmail").value.trim().toLowerCase();
+          const password = document.getElementById("regPassword").value;
+
+          if (!name || !email || password.length < 6) {
+            errorBox.textContent = "Name, valid email and password (min 6) are required.";
+            errorBox.classList.remove("hidden");
+            return;
+          }
+
+          try {
+            button.disabled = true;
+            button.textContent = "Creating account...";
+            await apiRequest("/api/register", "POST", { name, email, password });
+            window.location.href = "/login.html";
+          } catch (err) {
+            errorBox.textContent = err.message || "Registration failed.";
+            errorBox.classList.remove("hidden");
+          } finally {
+            button.disabled = false;
+            button.textContent = "Create Account";
+          }
+        });
+      });
+    </script>
+  </body>
+</html>

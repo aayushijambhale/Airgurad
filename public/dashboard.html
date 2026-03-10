@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard - AirGuard</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <div id="appView" class="app-shell">
+      <header class="topbar">
+        <div class="topbar-left">
+          <div class="brand-icon" aria-hidden="true">AG</div>
+          <div>
+            <h1>AirGuard India</h1>
+            <p id="screenSubtitle">Home / Dashboard</p>
+          </div>
+        </div>
+        <div class="topbar-actions">
+          <span id="autoRefreshBadge" class="live-badge">Live auto-refresh: ON</span>
+          <button id="locateMeBtn" class="ghost-btn" type="button">Locate Me</button>
+          <button id="refreshBtn" class="ghost-btn" type="button">Refresh</button>
+        </div>
+      </header>
+
+      <main class="content">
+        <section class="screen active" data-screen="home">
+          <!-- KPIs -->
+          <section class="panel home-kpi-strip">
+            <article class="kpi-card">
+              <p>National Avg AQI</p>
+              <strong id="nationalAvgValue">--</strong>
+            </article>
+            <article class="kpi-card">
+              <p>Severe Zones</p>
+              <strong id="severeZonesValue">--</strong>
+            </article>
+            <article class="kpi-card">
+              <p>Advisory Level</p>
+              <strong id="advisoryValue">--</strong>
+            </article>
+            <article class="kpi-card">
+              <p>Last Incident</p>
+              <strong id="lastIncidentValue">--</strong>
+            </article>
+          </section>
+
+          <!-- Hero UI -->
+          <section class="hero-card panel home-hero">
+            <div class="hero-head">
+              <span id="aqiCategory" class="pill">--</span>
+              <p id="locationLabel" class="soft">--</p>
+            </div>
+            <div class="hero-metric">
+              <h2 id="aqiValue">--</h2>
+              <p id="healthAdvice">--</p>
+            </div>
+            <div class="meta-grid">
+              <article><p>Wind</p><strong id="windValue">--</strong></article>
+              <article><p>Humidity</p><strong id="humidityValue">--</strong></article>
+              <article><p>Dominant</p><strong id="dominantValue">--</strong></article>
+            </div>
+            
+            <div class="aqi-meter">
+              <div class="meter-track">
+                <div id="meterFill" class="meter-fill" style="width: 0%"></div>
+              </div>
+            </div>
+
+            <div class="pollutants-grid">
+              <div class="pollutant-pill"><span>PM2.5</span><strong id="pm25">--</strong></div>
+              <div class="pollutant-pill"><span>PM10</span><strong id="pm10">--</strong></div>
+              <div class="pollutant-pill"><span>O3</span><strong id="o3">--</strong></div>
+              <div class="pollutant-pill"><span>NO2</span><strong id="no2">--</strong></div>
+            </div>
+            
+            <div class="freshness-check">
+              <small id="freshnessValue">Waiting for sync...</small>
+            </div>
+          </section>
+
+          <!-- System Ops Rail -->
+          <aside class="panel home-rail">
+            <div class="section-head">
+              <h3>Operations Rail</h3>
+              <p>Platform health</p>
+            </div>
+            <div class="rail-metrics">
+              <article><p>Sensor Uptime</p><strong id="uptimeValue">--</strong></article>
+              <article><p>API Latency</p><strong id="latencyValue">--</strong></article>
+              <article><p>Queue Depth</p><strong id="queueValue">--</strong></article>
+            </div>
+            <div class="rail-section">
+              <h4>System Health</h4>
+              <div id="healthMatrix" class="health-matrix"></div>
+            </div>
+            <div class="rail-section">
+              <h4>Incident Queue</h4>
+              <div id="incidentList" class="incident-list"></div>
+            </div>
+          </aside>
+
+          <!-- Trend Data -->
+          <section class="panel home-trend">
+            <div class="section-head">
+              <h3>Air Quality Trend</h3>
+              <p>Historical shift timeline</p>
+            </div>
+            <div id="trendBars" class="trend-bars"></div>
+            <div id="trendTable" class="trend-table"></div>
+          </section>
+
+          <!-- Forecast Model -->
+          <section class="panel home-forecast">
+            <div class="section-head">
+              <h3>AI Forecast Projection</h3>
+              <p>24-hour predictive index</p>
+            </div>
+            <div id="forecastGrid" class="forecast-grid"></div>
+          </section>
+        </section>
+      </main>
+
+      <nav class="bottom-nav" aria-label="Primary">
+        <button class="nav-btn active" data-nav="home" onclick="location.href='/dashboard.html'">Home</button>
+        <button class="nav-btn" data-nav="search" onclick="location.href='/search.html'">Search</button>
+        <button class="nav-btn" data-nav="map" onclick="location.href='/map.html'">Map</button>
+        <button class="nav-btn" data-nav="realtime" onclick="location.href='/realtime.html'">Realtime</button>
+        <button class="nav-btn" data-nav="alerts" onclick="location.href='/alerts.html'">Alerts</button>
+        <button class="nav-btn" data-nav="login" onclick="location.href='/settings.html'">Settings</button>
+      </nav>
+    </div>
+
+    <script src="/script.js"></script>
+    <script>
+       const token = localStorage.getItem("airguard_token_v1");
+       document.addEventListener("DOMContentLoaded", () => {
+         appState.currentScreen = "home";
+         // requestInitialLocation() from script.js will handle the data load
+       });
+    </script>
+  </body>
+</html>

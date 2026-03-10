@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Search - AirGuard</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <div id="appView" class="app-shell">
+      <header class="topbar">
+        <div class="topbar-left">
+          <div class="brand-icon" aria-hidden="true">AG</div>
+          <div>
+            <h1>AirGuard India</h1>
+            <p id="screenSubtitle">Search Location</p>
+          </div>
+        </div>
+      </header>
+
+      <main class="content">
+        <section class="screen active" data-screen="search">
+          <section class="panel">
+            <div class="section-head">
+              <h3>Search Location</h3>
+              <p>City and neighborhood level AQI lookup</p>
+            </div>
+            <label for="cityInput">City</label>
+            <div class="input-row">
+              <input id="cityInput" type="text" placeholder="Try Mumbai, Bengaluru, Chennai" />
+              <button id="checkBtn" type="button">Check AQI</button>
+            </div>
+            <label for="areaInput">Area</label>
+            <input id="areaInput" class="full-input" type="text" placeholder="Example: Indiranagar" />
+            <div class="chip-row">
+              <button class="chip-btn" data-city="Delhi" type="button">Delhi</button>
+              <button class="chip-btn" data-city="Mumbai" type="button">Mumbai</button>
+              <button class="chip-btn" data-city="Pune" type="button">Pune</button>
+              <button class="chip-btn" data-city="Hyderabad" type="button">Hyderabad</button>
+            </div>
+            <p id="result" class="soft">Get a quick AQI estimate and category.</p>
+          </section>
+
+          <section class="panel">
+            <div class="section-head">
+              <h3>Recent Queries</h3>
+              <p>Latest requested locations</p>
+            </div>
+            <ul id="recentSearches" class="list"></ul>
+          </section>
+
+          <section class="panel">
+            <div class="section-head">
+              <h3>Search Snapshot</h3>
+              <p>Realtime assessment for selected location</p>
+            </div>
+            <div id="searchSummaryGrid" class="settings-grid settings-grid-details"></div>
+            <div id="stationMatches" class="alert-list"></div>
+          </section>
+        </section>
+      </main>
+
+      <nav class="bottom-nav" aria-label="Primary">
+        <button class="nav-btn" data-nav="home" onclick="location.href='/dashboard.html'">Home</button>
+        <button class="nav-btn active" data-nav="search" onclick="location.href='/search.html'">Search</button>
+        <button class="nav-btn" data-nav="map" onclick="location.href='/map.html'">Map</button>
+        <button class="nav-btn" data-nav="realtime" onclick="location.href='/realtime.html'">Realtime</button>
+        <button class="nav-btn" data-nav="alerts" onclick="location.href='/alerts.html'">Alerts</button>
+        <button class="nav-btn" data-nav="login" onclick="location.href='/settings.html'">Settings</button>
+      </nav>
+    </div>
+
+    <script src="/script.js"></script>
+    <script>
+       const token = localStorage.getItem("airguard_token_v1");
+       if (!token) window.location.href = "/register.html";
+       document.addEventListener("DOMContentLoaded", () => {
+         appState.currentScreen = "search";
+         renderRecentSearches();
+         renderSearchInsights();
+       });
+    </script>
+  </body>
+</html>

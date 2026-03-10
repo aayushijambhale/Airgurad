@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login - AirGuard India</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <section id="authView" class="auth-shell">
+      <div class="auth-panel">
+        <div class="auth-brand">
+          <div class="brand-mark">AG</div>
+          <div>
+            <h1>AirGuard India</h1>
+            <p>National Air Quality Operations Console</p>
+          </div>
+        </div>
+        <h2>Sign in</h2>
+        <p class="soft">Use your registered account to access national AQI dashboard, alerts, map operations and realtime controls.</p>
+
+        <div class="auth-helper-grid" aria-label="Platform overview">
+          <article class="helper-chip">
+            <p>Data Source</p>
+            <strong>Open-Meteo</strong>
+          </article>
+          <article class="helper-chip">
+            <p>Coverage</p>
+            <strong>India Ops</strong>
+          </article>
+          <article class="helper-chip">
+            <p>Security</p>
+            <strong>SQLite Auth</strong>
+          </article>
+        </div>
+
+        <form id="authLoginForm" class="auth-form">
+          <label for="emailInput">Admin Email</label>
+          <input id="emailInput" type="email" placeholder="admin@airguard.in" required />
+
+          <label for="passwordInput">Admin Password</label>
+          <input id="passwordInput" type="password" placeholder="airguard123" required />
+
+          <button id="loginBtn" type="submit">Sign In</button>
+          <p id="loginError" class="error-text hidden"></p>
+        </form>
+
+        <p class="auth-footer-link">
+          New user? <a href="/register.html">Create account</a>
+        </p>
+      </div>
+    </section>
+
+    <script src="/script.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", async () => {
+        try {
+          const boot = await apiRequest("/api/bootstrap", "GET");
+          if (!boot.hasUsers) {
+            window.location.href = "/register.html";
+            return;
+          }
+        } catch {
+          // Ignore bootstrap check failures and continue login flow.
+        }
+
+        const token = localStorage.getItem("airguard_token_v1");
+        if (token) {
+          try {
+            await apiRequest("/api/me", "GET", null, true);
+            window.location.href = "/settings.html";
+            return;
+          } catch {
+            localStorage.removeItem("airguard_token_v1");
+            localStorage.removeItem("airguard_auth_v1");
+          }
+        }
+
+        const form = document.getElementById("authLoginForm");
+        const errorBox = document.getElementById("loginError");
+        const button = document.getElementById("loginBtn");
+
+        form.addEventListener("submit", async (event) => {
+          event.preventDefault();
+          const email = document.getElementById("emailInput").value.trim().toLowerCase();
+          const password = document.getElementById("passwordInput").value;
+          errorBox.classList.add("hidden");
+          errorBox.textContent = "";
+
+          try {
+            button.disabled = true;
+            button.textContent = "Signing in...";
+            const auth = await apiRequest("/api/login", "POST", { email, password });
+            localStorage.setItem("airguard_token_v1", auth.token);
+            localStorage.setItem("airguard_auth_v1", auth.user.email);
+            window.location.href = "/settings.html";
+          } catch (err) {
+            errorBox.textContent = err.message || "Login failed.";
+            errorBox.classList.remove("hidden");
+          } finally {
+            button.disabled = false;
+            button.textContent = "Sign In";
+          }
+        });
+      });
+    </script>
+  </body>
+</html>

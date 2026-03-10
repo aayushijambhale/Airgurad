@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Realtime Monitoring - AirGuard</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <div id="appView" class="app-shell">
+      <header class="topbar">
+        <div class="topbar-left">
+          <div class="brand-icon" aria-hidden="true">AG</div>
+          <div>
+            <h1>AirGuard India</h1>
+            <p id="screenSubtitle">Live Station Feed</p>
+          </div>
+        </div>
+      </header>
+
+      <main class="content">
+        <section class="screen active" data-screen="realtime">
+          <section class="panel">
+            <div class="section-head">
+              <h3>Realtime Monitoring</h3>
+              <p>Live AQI feed from priority stations</p>
+            </div>
+            <p id="liveStatus" class="soft">Live feed active</p>
+
+            <div id="realtimeFeed" class="log-list"></div>
+          </section>
+
+          <section class="panel stack-gap">
+            <div class="section-head">
+              <h3>Station Controls</h3>
+              <p>Realtime feed management</p>
+            </div>
+            <div class="utility-grid">
+              <button id="pauseFeedBtn" class="utility-btn" type="button">Pause Feed</button>
+              <button id="resumeFeedBtn" class="utility-btn" type="button">Resume Feed</button>
+              <button id="syncFeedBtn" class="utility-btn" type="button">Sync Stations</button>
+              <button id="archiveFeedBtn" class="utility-btn" type="button">Archive Snapshot</button>
+            </div>
+            <p id="realtimeActionStatus" class="soft" style="margin-top: 12px;">Realtime controls ready.</p>
+          </section>
+        </section>
+      </main>
+
+      <nav class="bottom-nav" aria-label="Primary">
+        <button class="nav-btn" data-nav="home" onclick="location.href='/dashboard.html'">Home</button>
+        <button class="nav-btn" data-nav="search" onclick="location.href='/search.html'">Search</button>
+        <button class="nav-btn" data-nav="map" onclick="location.href='/map.html'">Map</button>
+        <button class="nav-btn active" data-nav="realtime" onclick="location.href='/realtime.html'">Realtime</button>
+        <button class="nav-btn" data-nav="alerts" onclick="location.href='/alerts.html'">Alerts</button>
+        <button class="nav-btn" data-nav="login" onclick="location.href='/settings.html'">Settings</button>
+      </nav>
+    </div>
+
+    <script src="/script.js"></script>
+    <script>
+       const token = localStorage.getItem("airguard_token_v1");
+       if (!token) window.location.href = "/login.html";
+       document.addEventListener("DOMContentLoaded", () => {
+         appState.currentScreen = "realtime";
+         renderRealtimeFeed();
+         
+         const pauseFeedBtn = document.getElementById("pauseFeedBtn");
+         const resumeFeedBtn = document.getElementById("resumeFeedBtn");
+         const realtimeActionStatus = document.getElementById("realtimeActionStatus");
+         
+         if (pauseFeedBtn) pauseFeedBtn.addEventListener("click", () => { appState.feedPaused = true; realtimeActionStatus.textContent = "Feed manually paused."; });
+         if (resumeFeedBtn) resumeFeedBtn.addEventListener("click", () => { appState.feedPaused = false; realtimeActionStatus.textContent = "Feed resumed."; renderRealtimeFeed(); });
+       });
+    </script>
+  </body>
+</html>

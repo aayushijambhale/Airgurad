@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>National Map - AirGuard</title>
+    <!-- Leaflet CSS for maps -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""
+    />
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <div id="appView" class="app-shell">
+      <header class="topbar">
+        <div class="topbar-left">
+          <div class="brand-icon" aria-hidden="true">AG</div>
+          <div>
+            <h1>AirGuard India</h1>
+            <p id="screenSubtitle">Interactive Web Map</p>
+          </div>
+        </div>
+        <div class="topbar-actions">
+           <button id="refreshMapTop" class="ghost-btn" type="button" onclick="location.reload()">Refresh Map</button>
+        </div>
+      </header>
+
+      <main class="content">
+        <section class="screen active" data-screen="map">
+          <section class="panel">
+            <div class="section-head">
+              <h3>National AQI Watch</h3>
+              <p>Priority cities and zone severity</p>
+            </div>
+            <div id="realMap" class="real-map"></div>
+            <div id="mapGrid" class="city-grid"></div>
+          </section>
+
+          <section class="panel">
+            <div class="section-head">
+              <h3>Hotspot Actions</h3>
+              <p>Rapid control actions for selected zones</p>
+            </div>
+            <div class="utility-grid">
+              <button id="issueAdvisoryBtn" class="utility-btn" type="button">Issue Public Advisory</button>
+              <button id="dispatchTeamBtn" class="utility-btn" type="button">Dispatch Response Team</button>
+              <button id="flagIndustrialBtn" class="utility-btn warning" type="button">Flag Industrial Check</button>
+              <button id="downloadMapBtn" class="utility-btn" type="button">Download Zone Snapshot</button>
+            </div>
+            <p id="mapActionStatus" class="soft soft-gap-sm">Awaiting action.</p>
+          </section>
+
+          <section class="panel">
+            <div class="section-head">
+              <h3>Zone Intelligence</h3>
+              <p>Live severity distribution and escalation queue</p>
+            </div>
+            <div id="zoneSummaryGrid" class="settings-grid settings-grid-details"></div>
+            <div id="hotspotFeed" class="alert-list"></div>
+          </section>
+        </section>
+      </main>
+
+      <nav class="bottom-nav" aria-label="Primary">
+        <button class="nav-btn" data-nav="home" onclick="location.href='/dashboard.html'">Home</button>
+        <button class="nav-btn" data-nav="search" onclick="location.href='/search.html'">Search</button>
+        <button class="nav-btn active" data-nav="map" onclick="location.href='/map.html'">Map</button>
+        <button class="nav-btn" data-nav="realtime" onclick="location.href='/realtime.html'">Realtime</button>
+        <button class="nav-btn" data-nav="alerts" onclick="location.href='/alerts.html'">Alerts</button>
+        <button class="nav-btn" data-nav="login" onclick="location.href='/settings.html'">Settings</button>
+      </nav>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""
+    ></script>
+    <script src="/script.js"></script>
+    <script>
+       const token = localStorage.getItem("airguard_token_v1");
+       if (!token) window.location.href = "/register.html";
+       document.addEventListener("DOMContentLoaded", () => {
+         appState.currentScreen = "map";
+         renderMapGrid();
+         renderLeafletMap();
+         renderMapIntelligence();
+         setTimeout(() => { if (mapInstance) mapInstance.invalidateSize() }, 100);
+       });
+    </script>
+  </body>
+</html>

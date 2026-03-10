@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Settings - AirGuard</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <div id="appView" class="app-shell">
+      <header class="topbar">
+        <div class="topbar-left">
+          <div class="brand-icon" aria-hidden="true">AG</div>
+          <div>
+            <h1>AirGuard India</h1>
+            <p id="screenSubtitle">Settings & Access</p>
+          </div>
+        </div>
+      </header>
+
+      <main class="content">
+        <section class="screen active settings-screen" data-screen="login">
+          <section class="panel settings-panel">
+            <div class="section-head">
+              <h3>Profile and Access</h3>
+              <p>Signed-in operator profile and account security status</p>
+            </div>
+
+            <div class="settings-grid settings-grid-top">
+              <article class="settings-tile">
+                <p>Profile Type</p>
+                <strong>Operations Admin</strong>
+              </article>
+              <article class="settings-tile">
+                <p>Auth Provider</p>
+                <strong>SQLite Sessions</strong>
+              </article>
+              <article class="settings-tile">
+                <p>Policy</p>
+                <strong>Password Min 6</strong>
+              </article>
+            </div>
+            
+            <div class="profile-card">
+              <p>Signed in as</p>
+              <strong id="userEmailValue">Calculating...</strong>
+              <span id="userRoleValue">Role: Admin</span>
+            </div>
+
+            <p class="settings-status">Session status: device is authorized for operations until logout.</p>
+
+            <section class="panel profile-detail-panel">
+              <div class="section-head">
+                <h3>Account Details</h3>
+                <p>Current signed-in profile information</p>
+              </div>
+              <div class="settings-grid settings-grid-details">
+                <article class="settings-tile">
+                  <p>Name</p>
+                  <strong id="profileNameValue">--</strong>
+                </article>
+                <article class="settings-tile">
+                  <p>Email</p>
+                  <strong id="profileEmailValue">--</strong>
+                </article>
+                <article class="settings-tile">
+                  <p>User ID</p>
+                  <strong id="profileIdValue">--</strong>
+                </article>
+                <article class="settings-tile">
+                  <p>Created</p>
+                  <strong id="profileCreatedValue">--</strong>
+                </article>
+              </div>
+            </section>
+
+            <p id="navLoginStatus" class="soft soft-gap-sm">Active Operational View</p>
+            <button id="navLogoutBtn" class="danger-btn" type="button">Logout Device</button>
+          </section>
+        </section>
+      </main>
+
+      <nav class="bottom-nav" aria-label="Primary">
+        <button class="nav-btn" data-nav="home" onclick="location.href='/dashboard.html'">Home</button>
+        <button class="nav-btn" data-nav="search" onclick="location.href='/search.html'">Search</button>
+        <button class="nav-btn" data-nav="map" onclick="location.href='/map.html'">Map</button>
+        <button class="nav-btn" data-nav="realtime" onclick="location.href='/realtime.html'">Realtime</button>
+        <button class="nav-btn" data-nav="alerts" onclick="location.href='/alerts.html'">Alerts</button>
+        <button class="nav-btn active" data-nav="login" onclick="location.href='/settings.html'">Settings</button>
+      </nav>
+    </div>
+
+    <script src="/script.js"></script>
+    <script>
+       document.addEventListener("DOMContentLoaded", async () => {
+         appState.currentScreen = "login";
+
+         const emailLabel = document.getElementById("userEmailValue");
+         const roleLabel = document.getElementById("userRoleValue");
+         const profileName = document.getElementById("profileNameValue");
+         const profileEmail = document.getElementById("profileEmailValue");
+         const profileId = document.getElementById("profileIdValue");
+         const profileCreated = document.getElementById("profileCreatedValue");
+
+         const fallbackEmail = localStorage.getItem("airguard_auth_v1") || "--";
+         if (emailLabel) emailLabel.textContent = fallbackEmail;
+         if (profileEmail) profileEmail.textContent = fallbackEmail;
+
+         try {
+           const me = await apiRequest("/api/me", "GET", null, true);
+           if (emailLabel) emailLabel.textContent = me.user.email;
+           if (roleLabel) roleLabel.textContent = "Role: Operations Admin";
+           if (profileName) profileName.textContent = me.user.name || "--";
+           if (profileEmail) profileEmail.textContent = me.user.email || "--";
+           if (profileId) profileId.textContent = String(me.user.id || "--");
+           if (profileCreated) {
+             const d = me.user.created_at ? new Date(me.user.created_at) : null;
+             profileCreated.textContent = d && !Number.isNaN(d.getTime()) ? d.toLocaleDateString() : "--";
+           }
+         } catch {
+           if (roleLabel) roleLabel.textContent = "Role: --";
+         }
+       });
+    </script>
+  </body>
+</html>
