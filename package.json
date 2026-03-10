@@ -12,6 +12,6 @@
   },
   "license": "MIT",
   "dependencies": {
-    "better-sqlite3": "^12.6.2"
+    "mongodb": "^7.1.0"
   }
 }

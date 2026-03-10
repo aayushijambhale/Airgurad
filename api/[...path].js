@@ -1,24 +1,32 @@
 const crypto = require("crypto");
-const Database = require("better-sqlite3");
+const { MongoClient, ObjectId } = require("mongodb");
 
-const isVercel = Boolean(process.env.VERCEL);
-const dbPath = isVercel ? "/tmp/airguard.db" : "airguard.db";
-const db = new Database(dbPath);
 const authSecret = process.env.AUTH_SECRET || "airguard-dev-secret-change-me";
+const mongoUri = process.env.MONGODB_URI || "";
+const mongoDbName = process.env.MONGODB_DB || "airguard";
 
-// Keep schema creation at module load so cold starts can initialize quickly.
-db.exec(`
-CREATE TABLE IF NOT EXISTS users (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  name TEXT NOT NULL,
-  email TEXT NOT NULL UNIQUE,
-  password_hash TEXT NOT NULL,
-  created_at TEXT NOT NULL
-)
-`);
+let mongoClient = null;
+let usersCollection = null;
 
 function hashPassword(password) {
   return crypto.createHash("sha256").update(password).digest("hex");
+}
+
+async function getUsersCollection() {
+  if (usersCollection) return usersCollection;
+  if (!mongoUri) {
+    throw new Error("MONGODB_URI is not configured.");
+  }
+
+  if (!mongoClient) {
+    mongoClient = new MongoClient(mongoUri);
+    await mongoClient.connect();
+  }
+
+  const db = mongoClient.db(mongoDbName);
+  usersCollection = db.collection("users");
+  await usersCollection.createIndex({ email: 1 }, { unique: true });
+  return usersCollection;
 }
 
 function toBase64Url(value) {
@@ -40,7 +48,7 @@ function signTokenPart(payloadPart) {
 
 function createSession(userId) {
   const payload = {
-    uid: Number(userId),
+    uid: String(userId),
     exp: Date.now() + 7 * 24 * 60 * 60 * 1000
   };
   const payloadPart = toBase64Url(JSON.stringify(payload));
@@ -59,7 +67,8 @@ function getUserIdFromToken(token) {
 
   try {
     const payload = JSON.parse(fromBase64Url(payloadPart));
-    if (!payload || typeof payload.uid !== "number") return null;
+    if (!payload || typeof payload.uid !== "string") return null;
+    if (!ObjectId.isValid(payload.uid)) return null;
     if (typeof payload.exp !== "number" || payload.exp < Date.now()) return null;
     return payload.uid;
   } catch {
@@ -67,19 +76,29 @@ function getUserIdFromToken(token) {
   }
 }
 
-function getUserFromAuth(req) {
+async function getUserFromAuth(req) {
   const authHeader = req.headers.authorization || "";
   const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
   const userId = getUserIdFromToken(token);
   if (!userId) return null;
 
-  const user = db
-    .prepare("SELECT id, name, email, created_at FROM users WHERE id = ?")
-    .get(userId);
+  const users = await getUsersCollection();
+  const user = await users.findOne(
+    { _id: new ObjectId(userId) },
+    { projection: { _id: 1, name: 1, email: 1, created_at: 1 } }
+  );
 
   if (!user) return null;
 
-  return { token, user };
+  return {
+    token,
+    user: {
+      id: String(user._id),
+      name: user.name,
+      email: user.email,
+      created_at: user.created_at
+    }
+  };
 }
 
 function sendJson(res, statusCode, payload) {
@@ -138,12 +157,12 @@ module.exports = async (req, res) => {
 
   if (pathname === "/api/bootstrap" && req.method === "GET") {
     try {
-      const row = db.prepare("SELECT COUNT(*) AS total FROM users").get();
-      const totalUsers = Number(row && row.total ? row.total : 0);
+      const users = await getUsersCollection();
+      const totalUsers = await users.countDocuments({});
       sendJson(res, 200, { ok: true, hasUsers: totalUsers > 0, totalUsers });
       return;
-    } catch {
-      sendJson(res, 500, { ok: false, message: "Bootstrap check failed." });
+    } catch (err) {
+      sendJson(res, 500, { ok: false, message: err.message || "Bootstrap check failed." });
       return;
     }
   }
@@ -160,22 +179,27 @@ module.exports = async (req, res) => {
         return;
       }
 
-      const exists = db.prepare("SELECT id FROM users WHERE email = ?").get(email);
+      const users = await getUsersCollection();
+      const exists = await users.findOne({ email }, { projection: { _id: 1 } });
       if (exists) {
         sendJson(res, 409, { ok: false, message: "Email already registered." });
         return;
       }
 
       const now = new Date().toISOString();
-      const info = db
-        .prepare("INSERT INTO users (name, email, password_hash, created_at) VALUES (?, ?, ?, ?)")
-        .run(name, email, hashPassword(password), now);
+      const info = await users.insertOne({
+        name,
+        email,
+        password_hash: hashPassword(password),
+        created_at: now
+      });
 
-      const token = createSession(info.lastInsertRowid);
+      const userId = String(info.insertedId);
+      const token = createSession(userId);
       sendJson(res, 201, {
         ok: true,
         token,
-        user: { id: info.lastInsertRowid, name, email, created_at: now }
+        user: { id: userId, name, email, created_at: now }
       });
       return;
     } catch (err) {
@@ -190,20 +214,20 @@ module.exports = async (req, res) => {
       const email = String(body.email || "").trim().toLowerCase();
       const password = String(body.password || "");
 
-      const user = db
-        .prepare("SELECT id, name, email, password_hash, created_at FROM users WHERE email = ?")
-        .get(email);
+      const users = await getUsersCollection();
+      const user = await users.findOne({ email });
 
       if (!user || user.password_hash !== hashPassword(password)) {
         sendJson(res, 401, { ok: false, message: "Invalid email or password." });
         return;
       }
 
-      const token = createSession(user.id);
+      const userId = String(user._id);
+      const token = createSession(userId);
       sendJson(res, 200, {
         ok: true,
         token,
-        user: { id: user.id, name: user.name, email: user.email, created_at: user.created_at }
+        user: { id: userId, name: user.name, email: user.email, created_at: user.created_at }
       });
       return;
     } catch (err) {
@@ -213,7 +237,7 @@ module.exports = async (req, res) => {
   }
 
   if (pathname === "/api/me" && req.method === "GET") {
-    const auth = getUserFromAuth(req);
+    const auth = await getUserFromAuth(req);
     if (!auth) {
       sendJson(res, 401, { ok: false, message: "Unauthorized" });
       return;
