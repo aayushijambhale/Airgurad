@@ -127,22 +127,7 @@ function formatCategory(aqi) {
   return "Hazardous";
 }
 
-
-function ensureIdsForAllElements() {
-  const tagCounters = {};
-  const allElements = document.querySelectorAll("*");
-
-  allElements.forEach((el) => {
-    if (el.id) return;
-
-    const tag = el.tagName.toLowerCase();
-    tagCounters[tag] = (tagCounters[tag] || 0) + 1;
-    el.id = `ag-auto-${tag}-${tagCounters[tag]}`;
-  });
-}
-
 function categoryColor(category) {
-  ensureIdsForAllElements();
   if (category === "Good") return "#16a34a";
   if (category === "Moderate") return "#d97706";
   if (category === "Unhealthy for Sensitive Groups") return "#ea580c";

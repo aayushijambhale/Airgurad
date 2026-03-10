@@ -33,10 +33,10 @@
             <label for="areaInput">Area</label>
             <input id="areaInput" class="full-input" type="text" placeholder="Example: Indiranagar" />
             <div class="chip-row">
-              <button class="chip-btn" data-city="Delhi" type="button">Delhi</button>
-              <button class="chip-btn" data-city="Mumbai" type="button">Mumbai</button>
-              <button class="chip-btn" data-city="Pune" type="button">Pune</button>
-              <button class="chip-btn" data-city="Hyderabad" type="button">Hyderabad</button>
+              <button id="cityChipDelhi" class="chip-btn" data-city="Delhi" type="button">Delhi</button>
+              <button id="cityChipMumbai" class="chip-btn" data-city="Mumbai" type="button">Mumbai</button>
+              <button id="cityChipPune" class="chip-btn" data-city="Pune" type="button">Pune</button>
+              <button id="cityChipHyderabad" class="chip-btn" data-city="Hyderabad" type="button">Hyderabad</button>
             </div>
             <p id="result" class="soft">Get a quick AQI estimate and category.</p>
           </section>
@@ -61,12 +61,12 @@
       </main>
 
       <nav class="bottom-nav" aria-label="Primary">
-        <button class="nav-btn" data-nav="home" onclick="location.href='/dashboard.html'">Home</button>
-        <button class="nav-btn active" data-nav="search" onclick="location.href='/search.html'">Search</button>
-        <button class="nav-btn" data-nav="map" onclick="location.href='/map.html'">Map</button>
-        <button class="nav-btn" data-nav="realtime" onclick="location.href='/realtime.html'">Realtime</button>
-        <button class="nav-btn" data-nav="alerts" onclick="location.href='/alerts.html'">Alerts</button>
-        <button class="nav-btn" data-nav="login" onclick="location.href='/settings.html'">Settings</button>
+        <button id="navHomeBtn" class="nav-btn" data-nav="home" onclick="location.href='/dashboard.html'">Home</button>
+        <button id="navSearchBtn" class="nav-btn active" data-nav="search" onclick="location.href='/search.html'">Search</button>
+        <button id="navMapBtn" class="nav-btn" data-nav="map" onclick="location.href='/map.html'">Map</button>
+        <button id="navRealtimeBtn" class="nav-btn" data-nav="realtime" onclick="location.href='/realtime.html'">Realtime</button>
+        <button id="navAlertsBtn" class="nav-btn" data-nav="alerts" onclick="location.href='/alerts.html'">Alerts</button>
+        <button id="navSettingsBtn" class="nav-btn" data-nav="login" onclick="location.href='/settings.html'">Settings</button>
       </nav>
     </div>
 
