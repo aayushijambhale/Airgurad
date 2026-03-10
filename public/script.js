@@ -127,7 +127,22 @@ function formatCategory(aqi) {
   return "Hazardous";
 }
 
+
+function ensureIdsForAllElements() {
+  const tagCounters = {};
+  const allElements = document.querySelectorAll("*");
+
+  allElements.forEach((el) => {
+    if (el.id) return;
+
+    const tag = el.tagName.toLowerCase();
+    tagCounters[tag] = (tagCounters[tag] || 0) + 1;
+    el.id = `ag-auto-${tag}-${tagCounters[tag]}`;
+  });
+}
+
 function categoryColor(category) {
+  ensureIdsForAllElements();
   if (category === "Good") return "#16a34a";
   if (category === "Moderate") return "#d97706";
   if (category === "Unhealthy for Sensitive Groups") return "#ea580c";
@@ -1017,63 +1032,8 @@ function bindEvents() {
   }
 
   if (locateMeBtn) {
-    locateMeBtn.addEventListener("click", () => {
-      if (!navigator.geolocation) {
-        alert("Geolocation is not supported by your browser.");
-        return;
-      }
-      
-      if (locationLabel) locationLabel.textContent = "Detecting location...";
-      if (locateMeBtn) locateMeBtn.textContent = "Locating...";
-
-      navigator.geolocation.getCurrentPosition(async (position) => {
-        const lat = position.coords.latitude;
-        const lng = position.coords.longitude;
-
-        if (!isLikelyInIndiaByCoords(lat, lng)) {
-          appState.city = DEFAULT_CITY;
-          appState.area = DEFAULT_AREA;
-          appState.exactCoords = null;
-          saveLocationCache(appState.city, appState.area, null, "in");
-          if (result) result.textContent = "Detected coordinates are outside India. Switched to India default.";
-          renderDashboard();
-          if (locateMeBtn) locateMeBtn.textContent = "Locate Me";
-          return;
-        }
-        
-        try {
-          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
-          const data = await res.json();
-          const countryCode = String(data?.address?.country_code || "").toLowerCase();
-          const useIndiaLabel = isIndiaCountryCode(countryCode);
-          
-          const city = useIndiaLabel
-            ? data.address.city || data.address.state_district || data.address.county || "Current Location"
-            : "Current India Location";
-          const area = useIndiaLabel
-            ? data.address.suburb || data.address.neighbourhood || data.address.town || data.address.village || "Local"
-            : "Detected by GPS";
-          
-          appState.city = city;
-          appState.area = area;
-          appState.exactCoords = { lat, lng };
-          saveLocationCache(appState.city, appState.area, appState.exactCoords, useIndiaLabel ? countryCode : "in");
-
-          if (result) result.textContent = `Location detected: ${city}`;
-        } catch (e) {
-          appState.city = "Current India Location";
-          appState.area = "Detected by GPS";
-          appState.exactCoords = { lat, lng };
-          saveLocationCache(appState.city, appState.area, appState.exactCoords, "in");
-        }
-        
-        await renderDashboard();
-        if (locateMeBtn) locateMeBtn.textContent = "Locate Me";
-      }, (err) => {
-        alert("Unable to retrieve location. Make sure permissions are enabled. Error: " + err.message);
-        if (locateMeBtn) locateMeBtn.textContent = "Locate Me";
-        if (locationLabel) locationLabel.textContent = `${appState.city}, ${appState.area}`;
-      });
+    locateMeBtn.addEventListener("click", async () => {
+      await detectAndApplyCurrentLocation({ showAlerts: true, updateLocateButton: true });
     });
   }
 
@@ -1293,6 +1253,76 @@ async function init() {
   }
 }
 
+async function detectAndApplyCurrentLocation(options = {}) {
+  const { showAlerts = false, updateLocateButton = false } = options;
+
+  if (!navigator.geolocation) {
+    if (showAlerts) {
+      alert("Geolocation is not supported by your browser.");
+    }
+    return false;
+  }
+
+  if (locationLabel) locationLabel.textContent = "Detecting location...";
+  if (updateLocateButton && locateMeBtn) locateMeBtn.textContent = "Locating...";
+
+  return new Promise((resolve) => {
+    navigator.geolocation.getCurrentPosition(async (position) => {
+      const lat = position.coords.latitude;
+      const lng = position.coords.longitude;
+
+      if (!isLikelyInIndiaByCoords(lat, lng)) {
+        appState.city = DEFAULT_CITY;
+        appState.area = DEFAULT_AREA;
+        appState.exactCoords = null;
+        saveLocationCache(appState.city, appState.area, null, "in");
+        if (result) result.textContent = "Detected coordinates are outside India. Switched to India default.";
+        await renderDashboard();
+        if (updateLocateButton && locateMeBtn) locateMeBtn.textContent = "Locate Me";
+        resolve(true);
+        return;
+      }
+
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+        const data = await res.json();
+        const countryCode = String(data?.address?.country_code || "").toLowerCase();
+        const useIndiaLabel = isIndiaCountryCode(countryCode);
+
+        const city = useIndiaLabel
+          ? data.address.city || data.address.state_district || data.address.county || "Current Location"
+          : "Current India Location";
+        const area = useIndiaLabel
+          ? data.address.suburb || data.address.neighbourhood || data.address.town || data.address.village || "Local"
+          : "Detected by GPS";
+
+        appState.city = city;
+        appState.area = area;
+        appState.exactCoords = { lat, lng };
+        saveLocationCache(appState.city, appState.area, appState.exactCoords, useIndiaLabel ? countryCode : "in");
+
+        if (result) result.textContent = `Location detected: ${city}`;
+      } catch (e) {
+        appState.city = "Current India Location";
+        appState.area = "Detected by GPS";
+        appState.exactCoords = { lat, lng };
+        saveLocationCache(appState.city, appState.area, appState.exactCoords, "in");
+      }
+
+      await renderDashboard();
+      if (updateLocateButton && locateMeBtn) locateMeBtn.textContent = "Locate Me";
+      resolve(true);
+    }, (err) => {
+      if (showAlerts) {
+        alert("Unable to retrieve location. Make sure permissions are enabled. Error: " + err.message);
+      }
+      if (updateLocateButton && locateMeBtn) locateMeBtn.textContent = "Locate Me";
+      if (locationLabel) locationLabel.textContent = `${appState.city}, ${appState.area}`;
+      resolve(false);
+    }, { timeout: 8000, maximumAge: 60000 });
+  });
+}
+
 async function requestInitialLocation() {
   const cachedLoc = localStorage.getItem("airguard_loc_v1");
   if (cachedLoc) {
@@ -1322,63 +1352,8 @@ async function requestInitialLocation() {
   await renderDashboard();
   startAutoRefresh();
 
-  if (!navigator.geolocation || !navigator.permissions) {
-    return;
-  }
-
-  try {
-    const permission = await navigator.permissions.query({ name: "geolocation" });
-    if (permission.state !== "granted") {
-      return;
-    }
-  } catch {
-    return;
-  }
-
-  navigator.geolocation.getCurrentPosition(async (position) => {
-    const lat = position.coords.latitude;
-    const lng = position.coords.longitude;
-
-    if (!isLikelyInIndiaByCoords(lat, lng)) {
-      appState.city = DEFAULT_CITY;
-      appState.area = DEFAULT_AREA;
-      appState.exactCoords = null;
-      saveLocationCache(appState.city, appState.area, null, "in");
-      if (result) result.textContent = "Detected coordinates are outside India. Using India default.";
-      await renderDashboard();
-      return;
-    }
-    
-    try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
-      const data = await res.json();
-      const countryCode = String(data?.address?.country_code || "").toLowerCase();
-      const useIndiaLabel = isIndiaCountryCode(countryCode);
-      
-      const city = useIndiaLabel
-        ? data.address.city || data.address.state_district || data.address.county || "Current Location"
-        : "Current India Location";
-      const area = useIndiaLabel
-        ? data.address.suburb || data.address.neighbourhood || data.address.town || data.address.village || "Local"
-        : "Detected by GPS";
-      
-      appState.city = city;
-      appState.area = area;
-      appState.exactCoords = { lat, lng };
-      saveLocationCache(appState.city, appState.area, appState.exactCoords, useIndiaLabel ? countryCode : "in");
-
-      if (result) result.textContent = `Location detected: ${city}`;
-    } catch (e) {
-      appState.city = "Current India Location";
-      appState.area = "Detected by GPS";
-      appState.exactCoords = { lat, lng };
-      saveLocationCache(appState.city, appState.area, appState.exactCoords, "in");
-    }
-    
-    await renderDashboard();
-  }, () => {
-    // Permission was granted previously but geolocation still failed. Keep fallback city.
-  }, { timeout: 8000, maximumAge: 60000 });
+  // Trigger the browser location permission prompt automatically on first load.
+  await detectAndApplyCurrentLocation({ showAlerts: false, updateLocateButton: false });
 }
 
 init();
