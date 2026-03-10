@@ -20,17 +20,21 @@ This folder contains a plain web app with a Node.js backend and MongoDB-based au
 ## Run
 
 1. Open terminal in this folder.
-2. Configure environment variables:
+2. Create a local env file:
+
+   Copy `.env.example` to `.env` and fill in your values.
+
+3. Configure environment variables in `.env`:
 
    MONGODB_URI=<your mongodb connection string>
    AUTH_SECRET=<strong random secret>
    MONGODB_DB=airguard (optional)
 
-3. Run:
+4. Run:
 
    npm start
 
-4. Open:
+5. Open:
 
    http://localhost:3001
 

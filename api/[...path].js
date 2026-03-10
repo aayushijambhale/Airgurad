@@ -8,6 +8,18 @@ const mongoDbName = process.env.MONGODB_DB || "airguard";
 let mongoClient = null;
 let usersCollection = null;
 
+function isMongoAuthError(err) {
+  const message = String(err && err.message ? err.message : "").toLowerCase();
+  return message.includes("authentication failed") || message.includes("bad auth") || message.includes("auth failed");
+}
+
+function dbErrorMessage(err, fallback) {
+  if (isMongoAuthError(err)) {
+    return "Database authentication failed. Check MONGODB_URI username/password and URL encoding.";
+  }
+  return fallback;
+}
+
 function hashPassword(password) {
   return crypto.createHash("sha256").update(password).digest("hex");
 }
@@ -16,6 +28,9 @@ async function getUsersCollection() {
   if (usersCollection) return usersCollection;
   if (!mongoUri) {
     throw new Error("MONGODB_URI is not configured.");
+  }
+  if (mongoUri.includes("<username>") || mongoUri.includes("<password>") || mongoUri.includes("<cluster-host>")) {
+    throw new Error("MONGODB_URI still contains placeholders.");
   }
 
   if (!mongoClient) {
@@ -162,7 +177,7 @@ module.exports = async (req, res) => {
       sendJson(res, 200, { ok: true, hasUsers: totalUsers > 0, totalUsers });
       return;
     } catch (err) {
-      sendJson(res, 500, { ok: false, message: err.message || "Bootstrap check failed." });
+      sendJson(res, 500, { ok: false, message: dbErrorMessage(err, "Bootstrap check failed.") });
       return;
     }
   }
@@ -203,7 +218,8 @@ module.exports = async (req, res) => {
       });
       return;
     } catch (err) {
-      sendJson(res, 400, { ok: false, message: err.message || "Registration failed." });
+      const statusCode = isMongoAuthError(err) ? 500 : 400;
+      sendJson(res, statusCode, { ok: false, message: dbErrorMessage(err, err.message || "Registration failed.") });
       return;
     }
   }
@@ -231,7 +247,8 @@ module.exports = async (req, res) => {
       });
       return;
     } catch (err) {
-      sendJson(res, 400, { ok: false, message: err.message || "Login failed." });
+      const statusCode = isMongoAuthError(err) ? 500 : 400;
+      sendJson(res, statusCode, { ok: false, message: dbErrorMessage(err, err.message || "Login failed.") });
       return;
     }
   }
