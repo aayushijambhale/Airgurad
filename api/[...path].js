@@ -116,13 +116,25 @@ async function readJsonBody(req) {
 }
 
 module.exports = async (req, res) => {
+  const requestPathname = (() => {
+    try {
+      return new URL(req.url || "/api", "http://localhost").pathname;
+    } catch {
+      return "/api";
+    }
+  })();
+
   const rawPath = req.query ? req.query.path : undefined;
-  const pathParts = Array.isArray(rawPath)
-    ? rawPath
+  const pathFromQuery = Array.isArray(rawPath)
+    ? `/api/${rawPath.join("/")}`
     : typeof rawPath === "string" && rawPath.length > 0
-      ? [rawPath]
-      : [];
-  const pathname = `/api/${pathParts.join("/")}`;
+      ? `/api/${rawPath}`
+      : "/api";
+
+  // Prefer actual URL path because req.query path params are inconsistent across runtimes.
+  const pathname = requestPathname.startsWith("/api/") || requestPathname === "/api"
+    ? requestPathname
+    : pathFromQuery;
 
   if (pathname === "/api/bootstrap" && req.method === "GET") {
     try {
