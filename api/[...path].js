@@ -4,7 +4,7 @@ const Database = require("better-sqlite3");
 const isVercel = Boolean(process.env.VERCEL);
 const dbPath = isVercel ? "/tmp/airguard.db" : "airguard.db";
 const db = new Database(dbPath);
-const sessions = new Map();
+const authSecret = process.env.AUTH_SECRET || "airguard-dev-secret-change-me";
 
 // Keep schema creation at module load so cold starts can initialize quickly.
 db.exec(`
@@ -21,26 +21,63 @@ function hashPassword(password) {
   return crypto.createHash("sha256").update(password).digest("hex");
 }
 
+function toBase64Url(value) {
+  return Buffer.from(value)
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
+}
+
+function fromBase64Url(value) {
+  const padded = value + "=".repeat((4 - (value.length % 4)) % 4);
+  return Buffer.from(padded.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString("utf8");
+}
+
+function signTokenPart(payloadPart) {
+  return toBase64Url(crypto.createHmac("sha256", authSecret).update(payloadPart).digest());
+}
+
 function createSession(userId) {
-  const token = crypto.randomBytes(24).toString("hex");
-  sessions.set(token, { userId, createdAt: Date.now() });
-  return token;
+  const payload = {
+    uid: Number(userId),
+    exp: Date.now() + 7 * 24 * 60 * 60 * 1000
+  };
+  const payloadPart = toBase64Url(JSON.stringify(payload));
+  const signaturePart = signTokenPart(payloadPart);
+  return `${payloadPart}.${signaturePart}`;
+}
+
+function getUserIdFromToken(token) {
+  const parts = String(token || "").split(".");
+  if (parts.length !== 2) return null;
+
+  const payloadPart = parts[0];
+  const signaturePart = parts[1];
+  const expectedSignature = signTokenPart(payloadPart);
+  if (signaturePart !== expectedSignature) return null;
+
+  try {
+    const payload = JSON.parse(fromBase64Url(payloadPart));
+    if (!payload || typeof payload.uid !== "number") return null;
+    if (typeof payload.exp !== "number" || payload.exp < Date.now()) return null;
+    return payload.uid;
+  } catch {
+    return null;
+  }
 }
 
 function getUserFromAuth(req) {
   const authHeader = req.headers.authorization || "";
   const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
-  if (!token || !sessions.has(token)) return null;
+  const userId = getUserIdFromToken(token);
+  if (!userId) return null;
 
-  const session = sessions.get(token);
   const user = db
     .prepare("SELECT id, name, email, created_at FROM users WHERE id = ?")
-    .get(session.userId);
+    .get(userId);
 
-  if (!user) {
-    sessions.delete(token);
-    return null;
-  }
+  if (!user) return null;
 
   return { token, user };
 }
@@ -170,9 +207,6 @@ module.exports = async (req, res) => {
   }
 
   if (pathname === "/api/logout" && req.method === "POST") {
-    const authHeader = req.headers.authorization || "";
-    const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
-    if (token) sessions.delete(token);
     sendJson(res, 200, { ok: true });
     return;
   }
