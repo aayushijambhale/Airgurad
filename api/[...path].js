@@ -116,7 +116,12 @@ async function readJsonBody(req) {
 }
 
 module.exports = async (req, res) => {
-  const pathParts = Array.isArray(req.query.path) ? req.query.path : [];
+  const rawPath = req.query ? req.query.path : undefined;
+  const pathParts = Array.isArray(rawPath)
+    ? rawPath
+    : typeof rawPath === "string" && rawPath.length > 0
+      ? [rawPath]
+      : [];
   const pathname = `/api/${pathParts.join("/")}`;
 
   if (pathname === "/api/bootstrap" && req.method === "GET") {
